@@ -89,7 +89,14 @@ async function run(name, args, key) {
     if (args.year) params.stdrYear = String(args.year);
     let rows = await vworld("getIndvdLandPriceAttr", params, key);
     if (!rows.length) return `개별공시지가 자료가 없습니다 (PNU ${pnu}${args.year ? `, ${args.year}년` : ""}). 번지·산 여부를 확인하세요.`;
-    rows = rows.slice().sort((a, b) => String(a.stdrYear).localeCompare(String(b.stdrYear)));
+    // 같은 연도에 여러 건이 있으면 공시일자가 가장 늦은 1건만 남긴다.
+    const byYear = new Map();
+    for (const r of rows) {
+      const k = String(r.stdrYear);
+      const cur = byYear.get(k);
+      if (!cur || String(r.pblntfDe || "") + String(r.stdrMt || "") >= String(cur.pblntfDe || "") + String(cur.stdrMt || "")) byYear.set(k, r);
+    }
+    rows = [...byYear.values()].sort((a, b) => String(a.stdrYear).localeCompare(String(b.stdrYear)));
     const lines = rows.map((r, i) => {
       const prev = i ? num(rows[i - 1].pblntfPclnd) : NaN;
       const chg = Number.isFinite(prev) && prev ? ((num(r.pblntfPclnd) / prev - 1) * 100).toFixed(2) + "%" : "-";
