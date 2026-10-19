@@ -1,0 +1,10 @@
+{
+  "name": "ecos-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "한국은행 ECOS 경제통계 MCP 서버 (Vercel)",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ECOS MCP</title>
+<style>
+  body { font-family: system-ui, -apple-system, "Malgun Gothic", sans-serif; max-width: 640px; margin: 48px auto; padding: 0 16px; line-height: 1.6; color: #222; background: #fafafa; }
+  code { background: #eee; padding: 2px 6px; border-radius: 4px; word-break: break-all; }
+  .ok { color: #1a7f37; font-weight: 600; }
+</style>
+</head>
+<body>
+  <h1>한국은행 ECOS MCP 서버</h1>
+  <p class="ok">서버가 정상적으로 배포되었습니다.</p>
+  <p>Claude 커스텀 커넥터에 아래 주소를 등록하세요.</p>
+  <p><code>https://<span id="host">이 사이트 주소</span>/api/mcp?ecos_key=본인인증키</code></p>
+  <script>document.getElementById('host').textContent = location.host;</script>
+</body>
+</html>
