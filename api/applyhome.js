@@ -228,7 +228,7 @@ async function run(name, args, key) {
     }
     if (got.score) {
       out.push("", "### 당첨가점", "주택형\t거주지역\t최저\t최고\t평균",
-        ...got.score.rows.map(r => `${r.HOUSE_TY}\t${r.RESIDE_SENM || ""}\t${r.LWET_SCORE}\t${r.TOP_SCORE}\t${r.AVRG_SCORE}`));
+        ...got.score.rows.filter(r => num(r.TOP_SCORE)).map(r => `${r.HOUSE_TY}\t${r.RESIDE_SENM || ""}\t${r.LWET_SCORE}\t${r.TOP_SCORE}\t${r.AVRG_SCORE}`));
       if (!got.score.rows.length) out.push("당첨가점 자료 없음");
     }
     if (got.special) {
@@ -268,7 +268,7 @@ async function run(name, args, key) {
         const r1 = rank1Summary(c.rows);
         const pr = priceRows("apt", m.rows);
         const w = pr.reduce((a, r) => (r.amt && r.sup ? { a: a.a + r.amt * ((r.gen || 0) + (r.sp || 0) || 1), s: a.s + (r.sup / PY) * ((r.gen || 0) + (r.sp || 0) || 1) } : a), { a: 0, s: 0 });
-        const sc = s.rows.map(x => num(x.AVRG_SCORE)).filter(v => v != null);
+        const sc = s.rows.map(x => num(x.AVRG_SCORE)).filter(v => v); // 기타지역 0점 행 제외
         return { h, r1, perPy: w.s ? w.a / w.s : null, score: sc.length ? sc.reduce((a, b) => a + b, 0) / sc.length : null };
       } catch (e) { return { h, err: e.message }; }
     }));
@@ -282,7 +282,7 @@ async function run(name, args, key) {
       `## APT 1순위 경쟁률 (${args.address || args.area}, ${ymdDash(from)} ~ ${ymdDash(to)}) — ${results.length}건${total > results.length ? ` / 전체 ${total}건 중 최근순` : ""}`, "",
       "모집공고일\t주택명\t공급위치\t공급규모\t일반공급\t1순위접수\t1순위경쟁률\t해당지역경쟁률\t평당분양가(만원,세대가중)\t평균당첨가점",
       ...lines, "",
-      "주: 1순위 경쟁률 = 1순위 접수건수 합 ÷ 주택형별 일반공급 세대수 합. 평당분양가는 주택형별 최고분양가·공급면적 기준(세대수 가중). 평균당첨가점은 주택형·지역별 평균의 단순평균.",
+      "주: 1순위 경쟁률 = 1순위 접수건수 합 ÷ 주택형별 일반공급 세대수 합. 평당분양가는 주택형별 최고분양가·공급면적 기준(세대수 가중). 평균당첨가점은 주택형·지역별 평균의 단순평균(당첨자 없는 0점 행 제외).",
       "출처: 한국부동산원 청약홈(공공데이터포털), 조회일 " + kst(),
     ].join("\n");
   }
