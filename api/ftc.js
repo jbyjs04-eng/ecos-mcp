@@ -135,7 +135,8 @@ function parseXml(xml) {
     if (!cur || k in cur) { cur = {}; rows.push(cur); }
     cur[k] = unesc(v);
   }
-  return { rows, total, code, msg };
+  // 자료가 없을 때 오는 빈 칸 행 제거
+  return { rows: rows.filter(r => Object.values(r).some(v => v !== "")), total, code, msg };
 }
 
 async function call(svc, params, key, { page = 1, rows = 1000 } = {}) {
