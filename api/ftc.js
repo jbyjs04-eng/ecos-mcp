@@ -339,7 +339,15 @@ async function run(name, args, key) {
   }
 
   if (name === "ftc_holding") {
-    const ym = args.ym ? ymOf(args.ym) : await latestYm(key, "0003");
+    let ym = args.ym ? ymOf(args.ym) : await latestYm(key, "0003");
+    // 최신 공개월에 지주회사 자료가 없으면 이전 공개월로 내려가며 자료가 있는 달을 찾는다
+    if (!args.ym) {
+      const yms = (await callAll("ym", { jobSeCode: "0003" }, key, 200).catch(() => [])).map(r => r.othbcYm).filter(v => /^\d{6}$/.test(v || "")).sort().reverse();
+      for (const y of yms.slice(0, 36)) {
+        const t = await call("holdco", { presentnYm: y }, key, { rows: 1 }).catch(() => ({ rows: [] }));
+        if (t.rows.length) { ym = y; break; }
+      }
+    }
     let jur = digits(args.jurirno);
     let list = [];
     if (!jur) {
