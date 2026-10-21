@@ -265,7 +265,7 @@ async function run(name, args, key) {
     return [`## ${g.name}(${g.code}) 소속회사 ${affi.length}개 — ${ym.slice(0, 4)}.${ym.slice(4)} 지정`,
       gr.smerNm ? `동일인 ${gr.smerNm} · 대표회사 ${gr.repreCmpny} · ${gr.invstmntLmtt || ""}` : "", "",
       head.join("\t"), ...lines, "",
-      inc.has("finance") ? "재무 금액 단위는 공정위 제출자료 기준(통상 백만원). 자산총액 큰 순 정렬." : "",
+      inc.has("finance") ? "재무 금액 단위: 원(공정위 제출자료 기준). 자산총액 큰 순 정렬." : "",
       ...notes.map(n => "※ " + n), SRC(ym)].filter(x => x !== "").join("\n");
   }
 
@@ -303,7 +303,7 @@ async function run(name, args, key) {
     const out = [`## ${base.entrprsNm || o.entrprsNm || "-"} — 기업집단 ${base.unityGrupNm || o.unityGrupNm || "(조회조건상 미표시)"}`,
       `법인등록번호 ${jur || base.jurirno || "-"} · 사업자번호 ${biz || base.bizrno || o.bizrno || "-"} · 대표자 ${base.rprsntvNm || o.rprsntvNm || "-"}`,
       ov.length ? `설립 ${fmtD(o.fondDe)} · 집단편입 ${fmtD(o.grinil)} · 업종 ${o.indutyNm || "-"}(${o.indutyCode || ""}) · 상시종업원 ${fmt(num(o.ordtmEmplyCo))}명` : ""];
-    if (fin.length) out.push("", "### 재무현황 (공정위 제출 기준)", `결산기일 ${fmtD(f.stacntDudt)} · 자산 ${fmt(num(f.assetsTotamt))} · 부채 ${fmt(num(f.debtTotamt))} · 자본 ${fmt(num(f.caplTotamt))} · 자본금 ${fmt(num(f.caplAmount))} · 매출 ${fmt(num(f.selngAmount))} · 순이익 ${fmt(num(f.thstrmNtpfAmount))} · 상장일 ${fmtD(f.entrprsOthbcDe)}`);
+    if (fin.length) out.push("", "### 재무현황 (공정위 제출 기준, 단위: 원)", `결산기일 ${fmtD(f.stacntDudt)} · 자산 ${fmt(num(f.assetsTotamt))} · 부채 ${fmt(num(f.debtTotamt))} · 자본 ${fmt(num(f.caplTotamt))} · 자본금 ${fmt(num(f.caplAmount))} · 매출 ${fmt(num(f.selngAmount))} · 순이익 ${fmt(num(f.thstrmNtpfAmount))} · 상장일 ${fmtD(f.entrprsOthbcDe)}`);
     if (hold.length) {
       hold.sort((a, b) => (num(b.allQotaRate) || 0) - (num(a.allQotaRate) || 0));
       out.push("", "### 주주현황", "주주명\t구분\t소유주식수\t전체지분율(%)\t보통주\t보통주지분율(%)\t우선주\t우선주지분율(%)",
