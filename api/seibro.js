@@ -98,7 +98,7 @@ function parseItems(text) {
   return { code, msg, total, rows };
 }
 
-async function call(svc, op, params, key, { page = 1, rows = 1000 } = {}) {
+async function call(svc, op, params, key, { page = 1, rows = 100 } = {}) { // GW 서비스는 numOfRows 최대 100
   const label = LABEL[svc];
   const qs = [`serviceKey=${encodeURIComponent(normKey(key))}`, "resultType=json"];
   if (!NOPAGE.has(op)) qs.push(`pageNo=${page}`, `numOfRows=${rows}`);
@@ -124,7 +124,7 @@ async function callAll(svc, op, params, key, max = 5000) {
   const rows = [...first.rows];
   if (NOPAGE.has(op)) return rows;
   const total = first.total || rows.length;
-  for (let p = 2; rows.length < Math.min(total, max) && p <= 10; p++) {
+  for (let p = 2; rows.length < Math.min(total, max) && p <= 50; p++) {
     const r = await call(svc, op, params, key, { page: p });
     if (!r.rows.length) break;
     rows.push(...r.rows);
