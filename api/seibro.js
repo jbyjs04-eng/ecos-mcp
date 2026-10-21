@@ -2,6 +2,8 @@
 const { createHandler, ToolError, norm } = require("../lib/core");
 
 const BASE = "https://apis.data.go.kr/B552481";
+// pageNo·numOfRows를 받지 않는 기능(보내면 INVALID_REQUEST_PARAMETER)
+const NOPAGE = new Set(["getIssucoBasicInfo", "getIssucoBondIssuStatus", "getShortmSecRema", "getCdSecnInfo", "getShortmIssucoRedAmtN1", "getShortmIssucoRedTermStatusN1", "getEstbIssuLmtN1"]);
 const LABEL = { CorpSvc: "15157348 기업정보서비스", BondSvc: "15157416 채권정보서비스", ShortmSvc: "15157428 단기금융증권정보서비스" };
 
 const TOOLS = [
@@ -98,7 +100,8 @@ function parseItems(text) {
 
 async function call(svc, op, params, key, { page = 1, rows = 1000 } = {}) {
   const label = LABEL[svc];
-  const qs = [`serviceKey=${encodeURIComponent(normKey(key))}`, `pageNo=${page}`, `numOfRows=${rows}`, "resultType=json"];
+  const qs = [`serviceKey=${encodeURIComponent(normKey(key))}`, "resultType=json"];
+  if (!NOPAGE.has(op)) qs.push(`pageNo=${page}`, `numOfRows=${rows}`);
   for (const [k, v] of Object.entries(params || {})) if (v !== undefined && v !== null && v !== "") qs.push(`${k}=${encodeURIComponent(v)}`);
   let res;
   try { res = await fetch(`${BASE}/${svc}/${op}?${qs.join("&")}`, { headers: { Accept: "application/json, application/xml" } }); }
@@ -119,6 +122,7 @@ async function call(svc, op, params, key, { page = 1, rows = 1000 } = {}) {
 async function callAll(svc, op, params, key, max = 5000) {
   const first = await call(svc, op, params, key);
   const rows = [...first.rows];
+  if (NOPAGE.has(op)) return rows;
   const total = first.total || rows.length;
   for (let p = 2; rows.length < Math.min(total, max) && p <= 10; p++) {
     const r = await call(svc, op, params, key, { page: p });
