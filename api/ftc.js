@@ -341,12 +341,12 @@ async function run(name, args, key) {
 
   if (name === "ftc_holding") {
     let ym = args.ym ? ymOf(args.ym) : await latestYm(key, "0003");
-    // 최신 공개월에 지주회사 자료가 없으면 이전 공개월로 내려가며 자료가 있는 달을 찾는다
+    // 월별 공개분은 그 달 신규 설립·전환 신고분뿐이므로, 전체 지주회사 목록이 있는 가장 최근 달을 찾는다
     if (!args.ym) {
       const yms = (await callAll("ym", { jobSeCode: "0003" }, key, 200).catch(() => [])).map(r => r.othbcYm).filter(v => /^\d{6}$/.test(v || "")).sort().reverse();
       for (const y of yms.slice(0, 36)) {
         const t = await call("holdco", { presentnYm: y }, key, { rows: 1 }).catch(() => ({ rows: [] }));
-        if (t.rows.length) { ym = y; break; }
+        if ((t.total || t.rows.length) >= 30) { ym = y; break; } // 연 1회 전체목록 공개월(나머지 달은 신규 신고분만)
       }
     }
     let jur = digits(args.jurirno);
