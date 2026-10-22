@@ -113,6 +113,7 @@ async function run(name, args, key) {
 
   if (name === "nps_workplace") {
     let seq = args.seq ? String(args.seq).trim() : "";
+    let srcYm = ""; // 상세 API에는 자료년월이 없어 검색 결과 값을 쓴다
     if (!seq) {
       if (!args.name) throw new ToolError("seq 또는 name이 필요합니다.");
       const rows = await search({ name: args.name, bizno: args.bizno }, key);
@@ -124,29 +125,31 @@ async function run(name, args, key) {
           ...cand.slice(0, 30).map(r => `${r.seq}\t${r.wkplNm}\t${r.bzowrRgstNo}\t${r.wkplRoadNmDtlAddr}`)].join("\n");
       }
       seq = String(cand[0].seq);
+      srcYm = digits(cand[0].dataCrtYm);
     }
     const d = (await call("getDetailInfoSearchV2", { seq }, key)).rows[0];
     if (!d) return `식별번호 ${seq} 사업장 상세 자료가 없습니다.`;
     const cnt = num(d.jnngpCnt), amt = num(d.crrmmNtcAmt);
-    const baseYm = digits(d.dataCrtYm) || kstYm();
+    const baseYm = digits(d.dataCrtYm) || srcYm || addYm(kstYm(), -1);
     const rate = rateOf(baseYm);
     const perHead = cnt ? amt / cnt : null;
     const estPay = perHead != null ? perHead / rate : null;
     const out = [`## ${d.wkplNm} (${String(d.wkplStylDvcd) === "1" ? "법인" : "개인"}, ${String(d.wkplJnngStcd) === "2" ? `탈퇴 ${fmtD(d.scsnDt)}` : "가입 중"})`,
       `주소 ${d.wkplRoadNmDtlAddr || "-"} · 사업자번호 앞6자리 ${d.bzowrRgstNo || "-"} · 업종 ${d.vldtVlKrnNm || "-"}(${d.wkplIntpCd || ""}) · 국민연금 적용일 ${fmtD(d.adptDt)}`,
-      "", "### 가입 현황", `자료년월 ${fmtD(d.dataCrtYm)} · 가입자수 ${fmt(cnt)}명 · 당월고지금액 ${fmt(amt)}원`,
+      "", "### 가입 현황", `자료년월 ${fmtD(baseYm)} · 가입자수 ${fmt(cnt)}명 · 당월고지금액 ${fmt(amt)}원`,
       perHead != null ? `1인당 월 보험료 ${fmt(perHead)}원 → 추정 1인당 기준소득월액 ${fmt(estPay)}원 (보험료율 ${(rate * 100).toFixed(1)}% 역산) · 추정 연간 보수총액 ${fmt(estPay * cnt * 12 / 1e8, 1)}억원` : ""];
     const months = args.months === 0 ? 0 : (args.months || 12);
     if (months) {
       const yms = Array.from({ length: months }, (_, i) => addYm(baseYm, -i));
       const per = await Promise.all(yms.map(ym => call("getPdAcctoSttusInfoSearchV2", { seq, dataCrtYm: ym }, key).then(r => ({ ym, r: r.rows[0] })).catch(e => ({ ym, err: e.message }))));
-      const ok = per.filter(p => p.r);
+      const ok = per.filter(p => p.r && (num(p.r.nwAcqzrCnt) != null || num(p.r.lssJnngpCnt) != null)); // 값 없는 달 제외
       if (ok.length) {
         const inSum = ok.reduce((s, p) => s + (num(p.r.nwAcqzrCnt) || 0), 0), outSum = ok.reduce((s, p) => s + (num(p.r.lssJnngpCnt) || 0), 0);
         out.push("", `### 월별 취업·퇴직 (최근 ${months}개월)`, "년월\t취업(신규취득)\t퇴직(상실)\t순증",
-          ...per.slice().reverse().map(p => p.r ? `${fmtD(p.ym)}\t${fmt(num(p.r.nwAcqzrCnt))}\t${fmt(num(p.r.lssJnngpCnt))}\t${fmt((num(p.r.nwAcqzrCnt) || 0) - (num(p.r.lssJnngpCnt) || 0))}` : `${fmtD(p.ym)}\t-\t-\t-`),
+          ...per.slice().reverse().map(p => ok.includes(p) ? `${fmtD(p.ym)}\t${fmt(num(p.r.nwAcqzrCnt))}\t${fmt(num(p.r.lssJnngpCnt))}\t${fmt((num(p.r.nwAcqzrCnt) || 0) - (num(p.r.lssJnngpCnt) || 0))}` : `${fmtD(p.ym)}\t-\t-\t-`),
           `합계\t${fmt(inSum)}\t${fmt(outSum)}\t${fmt(inSum - outSum)}`,
-          cnt ? `연환산 퇴직률(이직률) 약 ${fmt((outSum / ok.length * 12) / cnt * 100, 1)}%` : "");
+          cnt ? `연환산 퇴직률(이직률) 약 ${fmt((outSum / ok.length * 12) / cnt * 100, 1)}% (자료 있는 ${ok.length}개월 기준)` : "",
+          ok.length < months ? `※ 월별 취업·퇴직 자료는 ${months}개월 중 ${ok.length}개월만 제공됨(국민연금 API는 최근 일부 월만 공개). 추이 분석에는 부족하므로 매월 조회·누적하거나 회사 제시 자료와 대조.` : "");
       }
       const errs = per.filter(p => p.err);
       if (errs.length && !ok.length) out.push("", `※ 월별 현황 조회 실패: ${errs[0].err}`);
