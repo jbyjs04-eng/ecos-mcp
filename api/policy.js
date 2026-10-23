@@ -65,11 +65,13 @@ const unesc = s => String(s || "").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").
 const strip = html => unesc(html).replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ").replace(/<br\s*\/?>|<\/p>|<\/div>|<\/li>|<\/tr>/gi, "\n").replace(/<[^>]+>/g, " ")
   .replace(/&[a-z]+;/gi, " ").replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n").trim();
 
+const clean = s => strip(s).replace(/\s+/g, " ").trim(); // 제목·부제의 <br>, &middot; 등 정리
+
 function parse(xml) {
   const items = [];
   for (const m of xml.matchAll(/<NewsItem>([\s\S]*?)<\/NewsItem>/g)) {
     const o = {};
-    for (const f of m[1].matchAll(/<([A-Za-z0-9_]+)>([\s\S]*?)<\/\1>/g)) o[f[1]] = unesc(f[2]).trim();
+    for (const f of m[1].matchAll(/<([A-Za-z0-9_]+)>([\s\S]*?)<\/\1>/g)) o[f[1]] = /^(Title|SubTitle\d)$/.test(f[1]) ? clean(f[2]) : unesc(f[2]).trim();
     items.push(o);
   }
   return items;
